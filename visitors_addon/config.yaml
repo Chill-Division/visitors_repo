@@ -16,8 +16,15 @@ ingress: true
 ingress_port: 8420
 startup: application
 
+options:
+  admin_password: "SetSomethingStrongHere"
+
 schema:
-  admin_password: password?
+  admin_password:
+    name: "Admin Password"
+    description: "Password required to access the admin interface for viewing visitor logs"
+    required: true
+    type: str
 
 map:
   - type: addon_config

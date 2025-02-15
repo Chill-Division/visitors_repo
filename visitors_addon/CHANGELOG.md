@@ -1,6 +1,9 @@
 ## 0.9.5
 
-- Added admin_password configuration option in addon settings
+- Added admin_password configuration option in addon settings:
+  - Added proper schema definition with name and description
+  - Added initialization script to handle configuration
+  - Set default password with option to change via addon config
 - Improved admin interface styling to match main page:
   - Implemented Pico CSS framework for consistent theming
   - Enhanced table styling with proper borders and hover effects
