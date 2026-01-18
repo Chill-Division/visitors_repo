@@ -23,17 +23,53 @@ define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 300); // 5 minutes in seconds
 
 // Get admin password from Home Assistant addon config
-$configPath = '/visitors_config/options.json';
-if (file_exists($configPath)) {
-    $config = json_decode(file_get_contents($configPath), true);
-    $adminPassword = $config['admin_password'] ?? null;
-    if (!$adminPassword) {
-        error_log("Warning: admin_password not found in config, using default");
-        $adminPassword = "SetSomethingStrongHere";
+// Try local copy first (from startup script), then direct mount, then strict default
+$configLocations = [
+    __DIR__ . '/options.json',
+    '/visitors_config/options.json',
+    '/data/options.json'
+];
+
+$configFound = false;
+$adminPassword = null;
+
+foreach ($configLocations as $configPath) {
+    error_log("DEBUG: Checking for config at: " . $configPath);
+
+    if (file_exists($configPath)) {
+        error_log("DEBUG: Config file found at " . $configPath);
+        $json_content = file_get_contents($configPath);
+
+        if ($json_content === false) {
+            error_log("ERROR: Failed to read content from " . $configPath);
+            continue;
+        }
+
+        $config = json_decode($json_content, true);
+        if ($config === null) {
+            error_log("ERROR: Failed to decode JSON from " . $configPath . ". Error: " . json_last_error_msg());
+        } else {
+            $configFound = true;
+            $adminPassword = $config['admin_password'] ?? null;
+            if ($adminPassword) {
+                error_log("DEBUG: admin_password found in " . $configPath . " (length: " . strlen($adminPassword) . ")");
+            } else {
+                error_log("WARNING: admin_password key missing or empty in " . $configPath);
+            }
+            break; // Stop checking if we found a valid file
+        }
+    } else {
+        error_log("DEBUG: Config file NOT found at " . $configPath);
     }
-} else {
-    error_log("Warning: Config file not found at $configPath, using default password");
-    $adminPassword = "SetSomethingStrongHere";
+}
+
+if (!$configFound) {
+    error_log("WARNING: No valid config file found in any location.");
+}
+
+if (!$adminPassword) {
+    error_log("DEBUG: Using default password.");
+    $adminPassword = "cannabis";
 }
 
 // Database configuration with restricted permissions
@@ -46,7 +82,8 @@ if (file_exists($dbfile)) {
 }
 
 // Function to validate and sanitize input
-function sanitize_input($data) {
+function sanitize_input($data)
+{
     $data = trim($data);
     $data = stripslashes($data);
     $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
@@ -54,12 +91,14 @@ function sanitize_input($data) {
 }
 
 // Function to validate visitor name
-function validate_visitor_name($name) {
+function validate_visitor_name($name)
+{
     return !empty($name) && strlen($name) <= 100 && preg_match('/^[a-zA-Z0-9\s\-\'\.]+$/', $name);
 }
 
 // Function to validate contact number
-function validate_contact($contact) {
+function validate_contact($contact)
+{
     return !empty($contact) && strlen($contact) <= 20 && preg_match('/^[0-9\+\-\(\)\s]+$/', $contact);
 }
 ?>

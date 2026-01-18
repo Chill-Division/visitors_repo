@@ -1,2 +1,21 @@
 #!/usr/bin/with-contenv sh
+# Copy config to ensure php user can read it
+# Copy config to ensure php user can read it
+echo "DEBUG STARTUP: Searching for options.json..."
+FOUND_CONFIG=$(find / -name options.json -maxdepth 3 2>/dev/null | head -n 1)
+
+if [ -n "$FOUND_CONFIG" ]; then
+    echo "DEBUG STARTUP: Found config at $FOUND_CONFIG"
+    cp "$FOUND_CONFIG" /www/public/options.json
+    chown php:nginx /www/public/options.json
+    chmod 644 /www/public/options.json
+    echo "DEBUG STARTUP: Copied to /www/public/options.json"
+else
+    echo "WARNING STARTUP: options.json NOT FOUND via search."
+    echo "DEBUG STARTUP: Listing /visitors_config:"
+    # ls -la /visitors_config || echo "/visitors_config not readable"
+    echo "DEBUG STARTUP: Listing /data:"
+    # ls -la /data || echo "/data not readable"
+fi
+
 exec nginx

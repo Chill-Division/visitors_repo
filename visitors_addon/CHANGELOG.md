@@ -1,3 +1,10 @@
+## 1.0.0
+
+- **Major Release**: Stable release with robust configuration handling.
+- Fix: Solved admin password integration issues. Password is now reliably pulled from Home Assistant configuration.
+- Feature: Added Admin interface for managing sign-in options (add, edit, remove) with SQLite persistence.
+- Cleanup: Optimized logging for production use and removed debug artifacts.
+
 ## 0.9.5.1
 
 - Bugfixes and improved user log-out selection
