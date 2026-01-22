@@ -181,6 +181,12 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
                 <a href="?logout=1" class="contrast">Logout</a>
             </div>
             <main class="container">
+                <?php if (isset($usingDefaultPassword) && $usingDefaultPassword): ?>
+                    <article style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; margin-bottom: 20px;">
+                        <strong>Warning:</strong> You are using the default admin password. Please set a secure
+                        <code>admin_password</code> in the Home Assistant Add-on configuration.
+                    </article>
+                <?php endif; ?>
                 <h2>Visitor Activity</h2>
                 <div style="overflow-x:auto;">
                     <?php if (count($results) > 0): ?>
@@ -440,6 +446,13 @@ if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
             <div class="login-container">
                 <article>
                     <h2>Admin Access</h2>
+                    <?php if (isset($usingDefaultPassword) && $usingDefaultPassword): ?>
+                        <div class="error-message"
+                            style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+                            <strong>Warning:</strong> Default password in use. Please configure a secure password in Home
+                            Assistant.
+                        </div>
+                    <?php endif; ?>
                     <?php if (isset($error_message)): ?>
                         <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
                     <?php endif; ?>

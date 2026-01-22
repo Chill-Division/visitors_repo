@@ -18,4 +18,22 @@ else
     # ls -la /data || echo "/data not readable"
 fi
 
+
+# Ensure database exists in persistent storage
+if [ ! -f /data/visitor_signin.db ]; then
+    echo "DEBUG STARTUP: Initializing database in /data..."
+    if [ -f /www/public/visitor_signin.db ]; then
+        cp /www/public/visitor_signin.db /data/visitor_signin.db
+        echo "DEBUG STARTUP: Copied default database to /data."
+    else
+        echo "WARNING STARTUP: No default database found in /www/public."
+        # PHP will create it if permission is okay, but best to touch it here
+        touch /data/visitor_signin.db
+    fi
+fi
+
+# Ensure correct permissions for the database
+chown php:nginx /data/visitor_signin.db
+chmod 600 /data/visitor_signin.db
+
 exec nginx

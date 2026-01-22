@@ -67,13 +67,18 @@ if (!$configFound) {
     error_log("WARNING: No valid config file found in any location.");
 }
 
+$usingDefaultPassword = false;
+
 if (!$adminPassword) {
     error_log("DEBUG: Using default password.");
     $adminPassword = "cannabis";
+    $usingDefaultPassword = true;
 }
 
 // Database configuration with restricted permissions
-$dbfile = __DIR__ . '/visitor_signin.db';
+// Database configuration with restricted permissions
+// NOTE: /www/public is EPHEMERAL. All persistent data MUST be in /data.
+$dbfile = '/data/visitor_signin.db';
 $dbPermissions = 0600; // Read/write for owner only
 
 // Ensure database file has correct permissions

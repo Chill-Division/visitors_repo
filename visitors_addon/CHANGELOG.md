@@ -1,3 +1,9 @@
+## 1.0.1
+
+- Fix: Moved SQLite database to `/data` partition to ensure data persists across add-on restarts.
+- Feature: Added UI warning when using the default admin password.
+- Docs: Added comments to codebase warning about ephemeral directories.
+
 ## 1.0.0
 
 - **Major Release**: Stable release with robust configuration handling.
