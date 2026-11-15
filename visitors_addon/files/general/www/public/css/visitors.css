@@ -1,0 +1,1523 @@
+/* ==========================================================================
+   Visitors design system, layered on top of Pico CSS v2 (css/vendor).
+
+   The layout follows the GRACe Portal (same app bar, cards, tables and
+   light/dark switch), and the look follows the Chill Division brand guide:
+   Inter, the brand palette, pill buttons, hairlines and very few shadows.
+   --v-* tokens hold the palette so both themes stay in step.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Inter (served by the add-on, so it works with no internet)
+   -------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --------------------------------------------------------------------------
+   2. Design tokens + Pico overrides
+
+   The theme blocks use :root[data-theme=...] on purpose: Pico's own light
+   theme selector (:root:not([data-theme=dark])) would beat a plain
+   [data-theme="light"].
+   -------------------------------------------------------------------------- */
+
+:root {
+  --pico-font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --pico-font-family-sans-serif: var(--pico-font-family);
+  --pico-border-radius: 10px;
+  --pico-border-width: 1.5px;
+  --pico-outline-width: 3px;
+  --pico-form-element-spacing-vertical: 0.7rem;
+  --pico-form-element-spacing-horizontal: 0.9rem;
+  --pico-transition: 0.18s ease;
+  --pico-line-height: 1.55;
+
+  --v-radius: 14px;
+  --v-radius-lg: 22px;
+  --v-header-h: 4rem;
+  --v-max: 1160px;
+}
+
+:root[data-theme="light"] {
+  --v-bg: #f5f5f2;
+  --v-surface: #ffffff;
+  --v-surface-raised: #fafaf8;
+  --v-border: #e4e3de;
+  --v-border-strong: #d6d5cf;
+  --v-text: #2c2c2a;
+  --v-heading: #0d0d0d;
+  --v-muted: #64645f;
+  --v-accent: #2f6b45;
+  --v-accent-text: #2f6b45;
+  --v-accent-soft: #eaf2ec;
+  --v-ink: #0d0d0d;
+  --v-ink-hover: #2b2b2b;
+  --v-on-ink: #ffffff;
+  --v-tile: #0d0d0d;
+  --v-on-tile: #ffffff;
+  --v-danger: #b42318;
+  --v-danger-button: #b42318;
+  --v-danger-soft: #fdf3f2;
+  --v-danger-border: #f0c9c4;
+  --v-warning: #b4541a;
+  /* Inputs and tick boxes get a 3:1 outline (the brand's minimum for
+     graphics), a step darker than the website's #d6d5cf */
+  --v-input-border: #8f8e88;
+  --v-check-border: #8f8e88;
+  --v-header-bg: rgba(255, 255, 255, 0.86);
+  --v-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 30px rgba(0, 0, 0, 0.07);
+  --v-focus: rgba(13, 13, 13, 0.1);
+  --v-hover: rgba(13, 13, 13, 0.05);
+
+  --pico-background-color: var(--v-bg);
+  --pico-color: var(--v-text);
+  --pico-muted-color: var(--v-muted);
+  --pico-muted-border-color: var(--v-border);
+  --pico-h1-color: var(--v-heading);
+  --pico-h2-color: var(--v-heading);
+  --pico-h3-color: var(--v-heading);
+  --pico-h4-color: var(--v-heading);
+  --pico-h5-color: var(--v-heading);
+  --pico-h6-color: var(--v-heading);
+  --pico-primary: var(--v-ink);
+  --pico-primary-background: var(--v-ink);
+  --pico-primary-border: var(--v-ink);
+  --pico-primary-underline: rgba(13, 13, 13, 0.4);
+  --pico-primary-hover: var(--v-accent);
+  --pico-primary-hover-background: var(--v-ink-hover);
+  --pico-primary-hover-border: var(--v-ink-hover);
+  --pico-primary-hover-underline: var(--v-accent);
+  --pico-primary-focus: var(--v-focus);
+  --pico-primary-inverse: var(--v-on-ink);
+  --pico-card-background-color: var(--v-surface);
+  --pico-card-sectioning-background-color: var(--v-surface-raised);
+  --pico-card-box-shadow: none;
+  --pico-form-element-background-color: #ffffff;
+  --pico-form-element-selected-background-color: #ffffff;
+  --pico-form-element-border-color: var(--v-input-border);
+  --pico-form-element-color: var(--v-heading);
+  --pico-form-element-placeholder-color: #9a9a93;
+  --pico-form-element-active-background-color: #ffffff;
+  --pico-form-element-active-border-color: var(--v-ink);
+  --pico-form-element-focus-color: var(--v-focus);
+  --pico-form-element-invalid-border-color: var(--v-danger);
+  --pico-table-border-color: var(--v-border);
+  --pico-table-row-stripped-background-color: transparent;
+  --pico-modal-overlay-background-color: rgba(13, 13, 13, 0.45);
+  --pico-text-selection-color: rgba(47, 107, 69, 0.2);
+  --pico-icon-checkbox: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgb(255, 255, 255)' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --pico-icon-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgb(100, 100, 95)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+
+/* Dark follows the brand's "on black" colours: Ink behind, #D6D6D1 text,
+   #B9B9B4 for the quieter bits, white headings and white main buttons.
+   Green text is too dim on black, so green is kept for small marks only. */
+:root[data-theme="dark"] {
+  --v-bg: #0d0d0d;
+  --v-surface: #161615;
+  --v-surface-raised: #1c1c1a;
+  --v-border: #2a2a28;
+  --v-border-strong: #3d3d3a;
+  --v-text: #d6d6d1;
+  --v-heading: #ffffff;
+  --v-muted: #b9b9b4;
+  --v-accent: #2f6b45;
+  --v-accent-text: #ffffff;
+  --v-accent-soft: rgba(47, 107, 69, 0.24);
+  --v-ink: #ffffff;
+  --v-ink-hover: #e9e9e6;
+  --v-on-ink: #0d0d0d;
+  --v-tile: #232321;
+  --v-on-tile: #ffffff;
+  --v-danger: #f4978e;
+  --v-danger-button: #b42318;
+  --v-danger-soft: rgba(180, 35, 24, 0.16);
+  --v-danger-border: rgba(240, 120, 108, 0.45);
+  --v-warning: #d9773a;
+  --v-input-border: #66665f;
+  --v-check-border: #6a6a65;
+  --v-header-bg: rgba(13, 13, 13, 0.86);
+  --v-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.45);
+  --v-focus: rgba(255, 255, 255, 0.16);
+  --v-hover: rgba(255, 255, 255, 0.07);
+
+  --pico-background-color: var(--v-bg);
+  --pico-color: var(--v-text);
+  --pico-muted-color: var(--v-muted);
+  --pico-muted-border-color: var(--v-border);
+  --pico-h1-color: var(--v-heading);
+  --pico-h2-color: var(--v-heading);
+  --pico-h3-color: var(--v-heading);
+  --pico-h4-color: var(--v-heading);
+  --pico-h5-color: var(--v-heading);
+  --pico-h6-color: var(--v-heading);
+  --pico-primary: var(--v-ink);
+  --pico-primary-background: var(--v-ink);
+  --pico-primary-border: var(--v-ink);
+  --pico-primary-underline: rgba(255, 255, 255, 0.45);
+  --pico-primary-hover: #ffffff;
+  --pico-primary-hover-background: var(--v-ink-hover);
+  --pico-primary-hover-border: var(--v-ink-hover);
+  --pico-primary-hover-underline: #ffffff;
+  --pico-primary-focus: var(--v-focus);
+  --pico-primary-inverse: var(--v-on-ink);
+  --pico-card-background-color: var(--v-surface);
+  --pico-card-sectioning-background-color: var(--v-surface-raised);
+  --pico-card-box-shadow: none;
+  --pico-form-element-background-color: #121211;
+  --pico-form-element-selected-background-color: #121211;
+  --pico-form-element-border-color: var(--v-input-border);
+  --pico-form-element-color: #ffffff;
+  --pico-form-element-placeholder-color: #77776f;
+  --pico-form-element-active-background-color: #121211;
+  --pico-form-element-active-border-color: #ffffff;
+  --pico-form-element-focus-color: var(--v-focus);
+  --pico-form-element-invalid-border-color: var(--v-danger);
+  --pico-table-border-color: var(--v-border);
+  --pico-table-row-stripped-background-color: transparent;
+  --pico-modal-overlay-background-color: rgba(0, 0, 0, 0.6);
+  --pico-text-selection-color: rgba(255, 255, 255, 0.18);
+  --pico-icon-checkbox: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgb(13, 13, 13)' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  --pico-icon-search: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='rgb(185, 185, 180)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
+
+/* --------------------------------------------------------------------------
+   3. Base type
+   -------------------------------------------------------------------------- */
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11" 1; /* Inter's single-storey a reads well on screens */
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 750;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+h1 {
+  --pico-font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  --pico-font-size: 1.3rem;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  --pico-font-size: 1.1rem;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline-color: var(--v-heading);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--v-max);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+main.container {
+  padding-top: 1.75rem;
+  padding-bottom: 3.5rem;
+}
+
+main.container.narrow {
+  max-width: 30rem;
+}
+
+/* Green capitals above a heading, saying what the section is about */
+.eyebrow {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--v-accent-text);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. App bar + navigation (the same layout as GRACe's)
+   -------------------------------------------------------------------------- */
+
+header.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--v-header-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--v-border);
+  padding: 0 1.25rem;
+}
+
+.app-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: calc(var(--v-max) - 2.5rem);
+  min-height: var(--v-header-h);
+  margin: 0 auto;
+  /* Neutralise Pico's nav spacing, which pads each li and gives links
+     matching negative margins */
+  --pico-nav-element-spacing-vertical: 0rem;
+  --pico-nav-element-spacing-horizontal: 0rem;
+  --pico-nav-link-spacing-vertical: 0rem;
+  --pico-nav-link-spacing-horizontal: 0rem;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  color: var(--v-heading);
+  text-decoration: none;
+}
+
+.nav-brand:hover,
+.nav-brand:focus {
+  color: var(--v-heading);
+  text-decoration: none;
+}
+
+/* The app's icon tile: black with a white line icon, like the website's
+   feature icons */
+.nav-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  background: var(--v-tile);
+  color: var(--v-on-tile);
+}
+
+.nav-brand-mark svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.nav-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.nav-brand-text strong {
+  font-size: 1.05rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.nav-brand-sub {
+  color: var(--v-accent-text);
+  font-size: 0.68rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:root[data-theme="dark"] .nav-brand-sub {
+  color: var(--v-muted);
+}
+
+/* "by Chill Division": the maker's logo beside the app name. The brand guide
+   wants it at least 34px tall on screens, with a quarter of its height clear
+   all round, so the "by" sits a little further off than the gap above. */
+.nav-brand-maker {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: 0.2rem;
+  padding-left: 0.85rem;
+  border-left: 1px solid var(--v-border);
+}
+
+.nav-brand-by {
+  color: var(--v-muted);
+  font-size: 0.7rem;
+}
+
+.nav-maker-logo {
+  display: block;
+  width: auto;
+  height: max(34px, 2.125rem);
+}
+
+.logo-for-dark,
+:root[data-theme="dark"] .logo-for-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .logo-for-dark {
+  display: block;
+}
+
+.nav-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-menu li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-menu li a {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.5rem 0.95rem;
+  border-radius: 999px;
+  color: var(--v-heading);
+  font-size: 0.9rem;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--pico-transition), color var(--pico-transition);
+}
+
+.nav-menu li a:hover,
+.nav-menu li a:focus-visible {
+  background: var(--v-hover);
+  color: var(--v-heading);
+  text-decoration: none;
+}
+
+/* The page you're on: GRACe's soft pill, in the brand's green soft. Black
+   pills are kept for the main action on each page. */
+.nav-menu li a.active {
+  background: var(--v-accent-soft);
+  color: var(--v-heading);
+}
+
+.nav-menu li a.theme-toggle {
+  justify-content: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.5rem;
+  border: 1.5px solid var(--v-border-strong);
+  background: transparent;
+  color: var(--v-heading);
+}
+
+.nav-menu li a.theme-toggle:hover,
+.nav-menu li a.theme-toggle:focus-visible {
+  border-color: var(--v-heading);
+  background: transparent;
+}
+
+.theme-toggle svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+/* Hamburger, phones only */
+.nav-toggle {
+  display: none;
+}
+
+.nav-toggle-label {
+  display: none;
+  cursor: pointer;
+}
+
+/* The menu folds away below 640px: the logo and the three menu items need
+   about 600px to sit on one line */
+@media (max-width: 640px) {
+  header.app-header {
+    padding: 0 1rem;
+  }
+
+  .nav-toggle-label {
+    display: block;
+    position: relative;
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+    border-radius: 999px;
+    color: var(--v-heading);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .nav-toggle-label:active {
+    background: var(--v-accent-soft);
+  }
+
+  /* The middle bar is pinned to the label's exact centre with absolute
+     offsets (some Home Assistant app WebViews don't centre flex children),
+     and the outer bars hang off it */
+  .hamburger {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 22px;
+    height: 2px;
+    margin: -1px 0 0 -11px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: background 0.25s ease;
+  }
+
+  .hamburger::before,
+  .hamburger::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    width: 22px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    transition: transform 0.25s ease, top 0.25s ease;
+  }
+
+  .hamburger::before {
+    top: -7px;
+  }
+
+  .hamburger::after {
+    top: 7px;
+  }
+
+  .nav-toggle:checked + .nav-toggle-label .hamburger {
+    background: transparent;
+  }
+
+  .nav-toggle:checked + .nav-toggle-label .hamburger::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+
+  .nav-toggle:checked + .nav-toggle-label .hamburger::after {
+    top: 0;
+    transform: rotate(-45deg);
+  }
+
+  .nav-menu {
+    display: none;
+    position: fixed;
+    top: var(--v-header-h);
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
+    margin: 0;
+    padding: 0.75rem 1rem 1rem;
+    background: var(--v-bg);
+    border-bottom: 1px solid var(--v-border);
+    box-shadow: var(--v-shadow);
+  }
+
+  .nav-toggle:checked ~ .nav-menu {
+    display: flex;
+  }
+
+  .nav-menu li a {
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+  }
+
+  .nav-menu li a.theme-toggle {
+    justify-content: flex-start;
+    width: fit-content;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. Page headers, panels, sections
+   -------------------------------------------------------------------------- */
+
+.page-header {
+  margin-bottom: 1.75rem;
+}
+
+.page-header > hgroup {
+  margin-bottom: 0;
+}
+
+.page-header h1 {
+  margin-bottom: 0.35rem;
+}
+
+.page-header p {
+  max-width: 62ch;
+  margin-bottom: 0;
+  color: var(--v-muted);
+  font-size: 1rem;
+}
+
+/* White cards with a hairline, 14px corners, no shadow */
+.panel,
+article {
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+  box-shadow: none;
+}
+
+.panel h2 {
+  margin-bottom: 1.1rem;
+}
+
+.admin-section {
+  margin-bottom: 2.75rem;
+}
+
+.admin-section h2 {
+  margin-bottom: 0.3rem;
+}
+
+.section-intro {
+  max-width: 68ch;
+  margin-bottom: 1.1rem;
+  color: var(--v-muted);
+  font-size: 0.92rem;
+}
+
+/* --------------------------------------------------------------------------
+   6. Forms and buttons (the website's shapes: 10px inputs, pill buttons)
+   -------------------------------------------------------------------------- */
+
+label {
+  color: var(--v-heading);
+  font-size: 0.95rem;
+  font-weight: 560;
+}
+
+label > :where(input, select, textarea) {
+  margin-top: 0.4rem;
+}
+
+.optional {
+  color: var(--v-muted);
+  font-weight: 400;
+}
+
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+select,
+textarea {
+  font-weight: 400;
+}
+
+/* Search boxes keep the same 10px corners as every other input */
+[type="search"] {
+  --pico-border-radius: 10px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+input[type="checkbox"]:not([role="switch"]) {
+  width: 1.35em;
+  height: 1.35em;
+  border-radius: 6px;
+  background-size: 0.8em auto;
+}
+
+/* Unticked boxes get the 3:1 outline. Ticked ones fill with the main colour
+   (Pico's own rule), black in light, white in dark */
+input[type="checkbox"]:not([role="switch"]):not(:checked) {
+  --pico-border-color: var(--v-check-border);
+}
+
+button,
+[type="submit"],
+[type="button"],
+[role="button"] {
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding: 0.75rem 1.35rem;
+}
+
+button:not(:disabled):hover,
+[role="button"]:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  transform: none;
+}
+
+/* Pico makes submit buttons full width, these stay the size of their words */
+button.btn-sm,
+button.btn-outline,
+button.btn-danger {
+  width: auto;
+}
+
+.btn-block {
+  width: 100%;
+}
+
+.btn-sm {
+  padding: 0.42rem 0.95rem;
+  font-size: 0.85rem;
+}
+
+/* Outline: the second action next to a black one */
+.btn-outline {
+  --pico-background-color: transparent;
+  --pico-border-color: var(--v-ink);
+  --pico-color: var(--v-ink);
+}
+
+.btn-outline:is(:hover, :focus-visible, :active) {
+  --pico-background-color: var(--v-ink);
+  --pico-border-color: var(--v-ink);
+  --pico-color: var(--v-on-ink);
+}
+
+.btn-danger {
+  --pico-background-color: var(--v-danger-button);
+  --pico-border-color: var(--v-danger-button);
+  --pico-color: #ffffff;
+}
+
+.btn-danger:is(:hover, :focus-visible, :active) {
+  --pico-background-color: #8f1c13;
+  --pico-border-color: #8f1c13;
+  --pico-color: #ffffff;
+}
+
+.btn-outline.btn-danger {
+  --pico-background-color: transparent;
+  --pico-border-color: var(--v-danger-border);
+  --pico-color: var(--v-danger);
+}
+
+.btn-outline.btn-danger:is(:hover, :focus-visible, :active) {
+  --pico-background-color: var(--v-danger-button);
+  --pico-border-color: var(--v-danger-button);
+  --pico-color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   7. The kiosk page
+   -------------------------------------------------------------------------- */
+
+.kiosk-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.kiosk-grid .panel {
+  margin-bottom: 0;
+}
+
+@media (min-width: 900px) {
+  .kiosk-grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* Sign out stays in view while a visitor scrolls the checklist */
+  .sign-out-panel {
+    position: sticky;
+    top: calc(var(--v-header-h) + 1.5rem);
+  }
+
+  .kiosk-grid .panel {
+    padding: 1.75rem;
+  }
+}
+
+.field-grid {
+  display: grid;
+  column-gap: 1rem;
+}
+
+@media (min-width: 600px) {
+  .field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The checklist every visitor ticks before signing in */
+.checklist {
+  margin: 0.4rem 0 1.5rem;
+}
+
+.checklist legend {
+  margin-bottom: 0.15rem;
+  color: var(--v-heading);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.checklist-hint {
+  margin-bottom: 0.6rem;
+  color: var(--v-muted);
+  font-size: 0.88rem;
+}
+
+label.check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.85rem 0.25rem;
+  border-top: 1px solid var(--v-border);
+  color: var(--v-text);
+  font-size: 0.93rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+label.check-item:last-of-type {
+  border-bottom: 1px solid var(--v-border);
+}
+
+label.check-item input[type="checkbox"] {
+  flex: none;
+  margin: 0.05rem 0 0;
+}
+
+label.check-item:has(input:checked) span {
+  color: var(--v-heading);
+}
+
+/* Sign out */
+.sign-out-panel label {
+  margin-bottom: 0;
+}
+
+.sign-out-hint {
+  font-size: 0.85rem;
+}
+
+.sign-out-results {
+  margin-top: 1rem;
+}
+
+.sign-out-results:empty {
+  margin-top: 0;
+}
+
+.visitor-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.visitor-options li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button.visitor-option {
+  --pico-background-color: var(--v-surface);
+  --pico-border-color: var(--v-border-strong);
+  --pico-color: var(--v-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.8rem 0.8rem 0.8rem 1rem;
+  border-radius: var(--v-radius);
+  text-align: left;
+  box-shadow: none;
+}
+
+button.visitor-option:is(:hover, :focus-visible, :active) {
+  --pico-background-color: var(--v-surface);
+  --pico-border-color: var(--v-heading);
+  --pico-color: var(--v-text);
+  box-shadow: var(--v-shadow);
+  transform: translateY(-2px);
+}
+
+.visitor-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.visitor-option-text strong {
+  color: var(--v-heading);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.visitor-option-meta {
+  display: block;
+  color: var(--v-muted);
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.visitor-option-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: var(--v-ink);
+  color: var(--v-on-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.visitor-option-action svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.sign-out-note {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px dashed var(--v-border-strong);
+  border-radius: var(--v-radius);
+  color: var(--v-muted);
+  font-size: 0.9rem;
+}
+
+.sign-out-note--error {
+  border-style: solid;
+  border-color: var(--v-danger-border);
+  background: var(--v-danger-soft);
+  color: var(--v-danger);
+}
+
+/* "Leaving? Sign out" jump link, for phones where sign out sits below the form */
+.jump-link {
+  display: none;
+}
+
+@media (max-width: 899px) {
+  .jump-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.9rem;
+    padding: 0.45rem 0.95rem;
+    border: 1.5px solid var(--v-ink);
+    border-radius: 999px;
+    color: var(--v-ink);
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .jump-link:hover,
+  .jump-link:focus-visible {
+    background: var(--v-ink);
+    color: var(--v-on-ink);
+    text-decoration: none;
+  }
+
+  .jump-link svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .sign-out-panel {
+    scroll-margin-top: calc(var(--v-header-h) + 1rem);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   8. Admin: stat cards, the visitor log, the checklist editor
+   -------------------------------------------------------------------------- */
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin-bottom: 2.5rem;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+}
+
+.stat-value {
+  color: var(--v-heading);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-label {
+  color: var(--v-muted);
+  font-size: 0.85rem;
+}
+
+.table-wrap {
+  margin: 0 0 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+}
+
+.table-wrap table {
+  --pico-background-color: transparent;
+  margin-bottom: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.table-wrap th {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--v-border);
+  background: transparent;
+  color: var(--v-muted);
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table-wrap td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--v-border);
+  background: transparent;
+  color: var(--v-text);
+  font-size: 0.9rem;
+  vertical-align: top;
+}
+
+.table-wrap tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.cell-name {
+  color: var(--v-heading);
+  font-weight: 600;
+}
+
+.cell-nowrap {
+  white-space: nowrap;
+}
+
+.cell-value,
+.cell-date,
+.cell-time {
+  display: block;
+}
+
+.cell-time {
+  color: var(--v-muted);
+  font-size: 0.82rem;
+}
+
+.cell-date + .cell-time {
+  margin-top: 0.05rem;
+}
+
+.cell-empty {
+  color: var(--v-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.badge--in {
+  background: #eaf2ec;
+  color: #2f6b45;
+}
+
+.badge--neutral {
+  background: rgba(128, 128, 120, 0.14);
+  color: var(--v-muted);
+}
+
+.empty-state {
+  padding: 1.5rem;
+  border: 1px dashed var(--v-border-strong);
+  border-radius: var(--v-radius);
+  color: var(--v-muted);
+  font-size: 0.92rem;
+}
+
+/* The checklist editor: one numbered row per item */
+.checklist-admin {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+  list-style: none;
+}
+
+.checklist-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--v-border);
+  list-style: none;
+}
+
+.checklist-row:last-child {
+  border-bottom: 0;
+}
+
+.checklist-row--new {
+  background: var(--v-surface-raised);
+  border-radius: 0 0 var(--v-radius) var(--v-radius);
+}
+
+.checklist-number {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-top: 0.35rem;
+  border: 1.5px solid var(--v-border-strong);
+  border-radius: 999px;
+  color: var(--v-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.checklist-number svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.term-form {
+  display: grid;
+  flex: 1;
+  gap: 0.6rem;
+  min-width: 0;
+  margin: 0;
+}
+
+.term-form textarea {
+  min-height: 2.9rem;
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  field-sizing: content;
+}
+
+.term-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.term-actions button {
+  margin: 0;
+}
+
+/* Save turns black once its item has been changed, so the one main action
+   on the page is the one that needs doing */
+.term-form.is-dirty .btn-save {
+  --pico-background-color: var(--v-ink);
+  --pico-border-color: var(--v-ink);
+  --pico-color: var(--v-on-ink);
+}
+
+@media (min-width: 768px) {
+  .term-form {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .term-actions {
+    flex-wrap: nowrap;
+    padding-top: 0.3rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. Callouts and status messages
+   -------------------------------------------------------------------------- */
+
+.callout,
+.status-message {
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--v-border);
+  border-left: 4px solid var(--v-accent);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+  color: var(--v-text);
+  font-size: 0.92rem;
+}
+
+.callout strong {
+  color: var(--v-heading);
+}
+
+.callout code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  font-size: 0.85em;
+}
+
+.callout-warning {
+  border-left-color: var(--v-warning);
+}
+
+.status-message.success {
+  border-color: var(--v-border);
+  border-left-color: var(--v-accent);
+  background: var(--v-accent-soft);
+  color: var(--v-heading);
+}
+
+.status-message.error {
+  border-color: var(--v-danger-border);
+  border-left-color: var(--v-danger-button);
+  background: var(--v-danger-soft);
+  color: var(--v-danger);
+}
+
+/* --------------------------------------------------------------------------
+   10. Login card
+   -------------------------------------------------------------------------- */
+
+.login-card {
+  margin-top: 1.5rem;
+  padding: 2rem;
+}
+
+.login-card h1 {
+  margin-bottom: 0.4rem;
+}
+
+.login-intro {
+  margin-bottom: 1.4rem;
+  color: var(--v-muted);
+  font-size: 0.95rem;
+}
+
+.login-card form {
+  margin: 0;
+}
+
+.login-card button {
+  margin-bottom: 0;
+}
+
+/* The brand's icon tile: 46px, black, 12px corners, white line icon */
+.icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 1.1rem;
+  border-radius: 12px;
+  background: var(--v-tile);
+  color: var(--v-on-tile);
+}
+
+.icon-tile svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* --------------------------------------------------------------------------
+   11. Toasts and the confirm pop-up (things that float get the only shadows)
+   -------------------------------------------------------------------------- */
+
+#toastContainer {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: min(92vw, 28rem);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  width: 100%;
+  padding: 0.9rem 1.15rem;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  background: var(--v-surface);
+  box-shadow: var(--v-shadow);
+  color: var(--v-heading);
+  font-size: 0.95rem;
+  font-weight: 500;
+  opacity: 0;
+  transform: translateY(0.75rem);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: auto;
+}
+
+.toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast--success {
+  box-shadow: var(--v-shadow), inset 4px 0 0 var(--v-accent);
+}
+
+.toast--error {
+  border-color: var(--v-danger-border);
+  box-shadow: var(--v-shadow), inset 4px 0 0 var(--v-danger-button);
+  color: var(--v-danger);
+}
+
+dialog.v-modal article {
+  width: calc(100vw - 2rem);
+  max-width: 26rem;
+  margin: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--v-border);
+  border-radius: var(--v-radius);
+  box-shadow: var(--v-shadow);
+}
+
+dialog.v-modal h3 {
+  margin-bottom: 0.5rem;
+}
+
+dialog.v-modal p {
+  color: var(--v-muted);
+  font-size: 0.92rem;
+}
+
+dialog.v-modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+dialog.v-modal footer button {
+  width: auto;
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   12. Small screens
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  .container {
+    padding-inline: 1rem;
+  }
+
+  .stat-grid {
+    gap: 0.6rem;
+  }
+
+  .stat-card {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .stat-value {
+    font-size: 1.6rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+
+  /* The visitor log as a stack of cards: the name on top, then each detail
+     with a small label */
+  .visitor-table thead {
+    display: none;
+  }
+
+  .visitor-table,
+  .visitor-table tbody,
+  .visitor-table tr,
+  .visitor-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .visitor-table tr {
+    position: relative;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--v-border);
+  }
+
+  .visitor-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .table-wrap .visitor-table td {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.12rem 0;
+    border: 0;
+    font-size: 0.88rem;
+    white-space: normal;
+  }
+
+  .table-wrap .visitor-table td.cell-name {
+    margin-bottom: 0.3rem;
+    padding-right: 7.5rem;
+    font-size: 0.98rem;
+  }
+
+  .visitor-table td[data-label]::before {
+    content: attr(data-label);
+    flex: none;
+    width: 5.2rem;
+    padding-top: 0.15rem;
+    color: var(--v-muted);
+    font-size: 0.68rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .visitor-table .cell-date,
+  .visitor-table .cell-time {
+    display: inline;
+  }
+
+  .visitor-table .cell-date:has(+ .cell-time)::after {
+    content: ",";
+  }
+
+  .visitor-table .cell-time {
+    color: inherit;
+    font-size: inherit;
+  }
+
+  /* A badge sits top right, beside the name */
+  .table-wrap .visitor-table td.cell-status {
+    position: absolute;
+    top: 0.8rem;
+    right: 1rem;
+    width: auto;
+    padding: 0;
+  }
+
+  main.container {
+    padding-top: 1.25rem;
+  }
+
+  h1 {
+    --pico-font-size: 1.5rem;
+  }
+
+  .panel,
+  article {
+    padding: 1.15rem;
+  }
+
+  .nav-brand {
+    gap: 0.5rem;
+  }
+
+  .nav-brand-maker {
+    margin-left: 0;
+    padding-left: 0.6rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 16px or more stops iPhones zooming in on a field */
+  input:not([type="checkbox"], [type="radio"]),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
