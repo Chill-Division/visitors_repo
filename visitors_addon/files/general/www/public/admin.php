@@ -1,5 +1,10 @@
 <?php
+/**
+ * Admin: the visitor log and the sign-in checklist, behind the admin
+ * password from the add-on's configuration.
+ */
 require_once 'config.php';
+require_once 'db.php';
 
 // Start session for login management
 session_start();
@@ -10,470 +15,318 @@ if (!isset($_SESSION['login_attempts'])) {
     $_SESSION['last_attempt_time'] = 0;
 }
 
-function check_login_attempts()
+/**
+ * Minutes left before another login attempt is allowed, or 0 when it's fine
+ * to try now.
+ */
+function login_wait_minutes(): int
 {
     if ($_SESSION['login_attempts'] >= MAX_LOGIN_ATTEMPTS) {
         $time_passed = time() - $_SESSION['last_attempt_time'];
         if ($time_passed < LOGIN_TIMEOUT) {
-            $wait_time = LOGIN_TIMEOUT - $time_passed;
-            die("Too many failed attempts. Please wait " . ceil($wait_time / 60) . " minutes before trying again.");
-        } else {
-            // Reset attempts after timeout
-            $_SESSION['login_attempts'] = 0;
+            return (int) ceil((LOGIN_TIMEOUT - $time_passed) / 60);
         }
+        // Reset attempts after timeout
+        $_SESSION['login_attempts'] = 0;
     }
+    return 0;
 }
 
-function process_login($password)
+function process_login(string $password): bool
 {
     global $adminPassword;
 
     // Record attempt time
     $_SESSION['last_attempt_time'] = time();
 
-    // LOGGING
-    error_log("DEBUG: Processing login attempt.");
-    // error_log("DEBUG: Admin Password Set? " . (isset($adminPassword) ? "Yes" : "No"));
-    // if (isset($adminPassword)) {
-    //    error_log("DEBUG: Admin Password Length: " . strlen($adminPassword));
-    // }
-
-    // Use constant-time comparison
-    if (hash_equals(hash('sha256', $adminPassword), hash('sha256', $password))) {
-        error_log("DEBUG: Authentication successful.");
+    // Compare the password exactly as typed. (Before 1.1.0 it was HTML-escaped
+    // first, so a password with & < > " or ' in it could never match.)
+    // Hashing both sides keeps the comparison constant-time.
+    if (hash_equals(hash('sha256', (string) $adminPassword), hash('sha256', $password))) {
+        session_regenerate_id(true);
         $_SESSION['authenticated'] = true;
         $_SESSION['login_attempts'] = 0;
         return true;
     }
 
-    error_log("DEBUG: Authentication failed.");
     $_SESSION['login_attempts']++;
     return false;
 }
 
-// Check if logged out
+function is_admin(): bool
+{
+    return isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true;
+}
+
+/** Remember a message for the next page load (after a redirect). */
+function flash(string $type, string $message): void
+{
+    $_SESSION['flash'] = ['type' => $type, 'message' => $message];
+}
+
+// Log out
 if (isset($_GET['logout'])) {
     session_destroy();
-    header('Location: index.html');
+    header('Location: index.php');
     exit;
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['password'])) {
-    check_login_attempts();
+$error_message = null;
 
-    $enteredPassword = sanitize_input($_POST['password']);
-
-    if (!process_login($enteredPassword)) {
-        $error_message = "Incorrect password. Access denied.";
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
+    $wait = login_wait_minutes();
+    if ($wait > 0) {
+        $error_message = "Too many wrong passwords. Wait {$wait} minute" . ($wait === 1 ? '' : 's') . ' and try again.';
+    } elseif (!process_login(is_string($_POST['password']) ? $_POST['password'] : '')) {
+        $error_message = "That password isn't right.";
     }
 }
 
-// Handle Admin Actions (Add, Update, Delete Terms)
-if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true && $_SERVER["REQUEST_METHOD"] == "POST") {
-    if (isset($_POST['action'])) {
-        try {
-            $conn = new PDO("sqlite:" . $dbfile);
-            $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-            if ($_POST['action'] == 'add_term') {
-                $term = sanitize_input($_POST['term']);
-                if (!empty($term)) {
-                    $stmt = $conn->prepare("INSERT INTO terms (term_text) VALUES (:term)");
-                    $stmt->bindParam(':term', $term);
-                    $stmt->execute();
-                    $success_message = "Option added successfully.";
-                }
-            } elseif ($_POST['action'] == 'delete_term') {
-                $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
-                if ($id) {
-                    $stmt = $conn->prepare("DELETE FROM terms WHERE id = :id");
-                    $stmt->bindParam(':id', $id);
-                    $stmt->execute();
-                    $success_message = "Option deleted successfully.";
-                }
-            } elseif ($_POST['action'] == 'update_term') {
-                $id = filter_var($_POST['id'], FILTER_VALIDATE_INT);
-                $term = sanitize_input($_POST['term']);
-                if ($id && !empty($term)) {
-                    $stmt = $conn->prepare("UPDATE terms SET term_text = :term WHERE id = :id");
-                    $stmt->bindParam(':term', $term);
-                    $stmt->bindParam(':id', $id);
-                    $stmt->execute();
-                    $success_message = "Option updated successfully.";
-                }
-            }
-        } catch (PDOException $e) {
-            $error_message = "Database error: " . $e->getMessage();
-        }
-    }
-}
-
-// If authenticated, show admin panel
-if (isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
+// Checklist changes. Each one redirects back here, so a refresh can't send
+// the same change twice.
+if (is_admin() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     try {
-        $conn = new PDO("sqlite:" . $dbfile);
-        $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $stmt = $conn->prepare("SELECT * FROM visitors ORDER BY timestamp DESC LIMIT 100");
-        $stmt->execute();
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        ?>
-        <!DOCTYPE html>
-        <html lang="en">
+        $conn = visitors_db();
+        $term = trim(is_string($_POST['term'] ?? null) ? $_POST['term'] : '');
+        $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
 
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Admin Panel - Visitors Sign-in</title>
-            <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-            <style>
-                .container {
-                    /* max-width: 1100px; */
-                    margin: 40px auto;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-                }
+        if ($_POST['action'] === 'add_term') {
+            if ($term === '') {
+                flash('error', 'Type the new checklist item first.');
+            } else {
+                $stmt = $conn->prepare("INSERT INTO terms (term_text) VALUES (:term)");
+                $stmt->execute([':term' => $term]);
+                flash('success', 'Added to the checklist.');
+            }
+        } elseif ($_POST['action'] === 'update_term' && $id) {
+            if ($term === '') {
+                flash('error', "A checklist item can't be empty. Use Delete to remove it.");
+            } else {
+                $stmt = $conn->prepare("UPDATE terms SET term_text = :term WHERE id = :id");
+                $stmt->execute([':term' => $term, ':id' => $id]);
+                flash('success', 'Checklist item saved.');
+            }
+        } elseif ($_POST['action'] === 'delete_term' && $id) {
+            $stmt = $conn->prepare("DELETE FROM terms WHERE id = :id");
+            $stmt->execute([':id' => $id]);
+            flash('success', 'Removed from the checklist.');
+        }
+    } catch (PDOException $e) {
+        error_log('Visitors: checklist change failed: ' . $e->getMessage());
+        flash('error', "That change didn't save. Try again.");
+    }
 
-                .visitor-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    border-radius: 8px;
-                    overflow: hidden;
-                }
+    header('Location: admin.php#checklist', true, 303);
+    exit;
+}
 
-                .visitor-table thead {
-                    background: #007bff;
-                    color: white;
-                    position: sticky;
-                    top: 0;
-                    z-index: 10;
-                }
+$defaultPasswordWarning = '';
+if (!empty($usingDefaultPassword)) {
+    $defaultPasswordWarning = '<div class="callout callout-warning" role="note"><strong>You\'re using the default admin password.</strong> '
+        . 'Set your own <code>admin_password</code> on the add-on\'s Configuration tab in Home Assistant, then restart the add-on.</div>';
+}
 
-                .visitor-table th,
-                .visitor-table td {
-                    padding: 12px;
-                    text-align: left;
-                    border-bottom: 1px solid #ddd;
-                }
+// ---------------------------------------------------------------------------
+// Not logged in: the login card
+// ---------------------------------------------------------------------------
+if (!is_admin()) {
+    $pageTitle = 'Admin · Visitors';
+    $navActive = 'admin';
+    require 'header.php';
+    ?>
 
-                .visitor-table tbody tr:nth-child(even) {
-                    background: #f9f9f9;
-                }
+    <main class="container narrow">
+        <article class="login-card">
+            <span class="icon-tile" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            </span>
+            <h1>Admin</h1>
+            <p class="login-intro">Enter the admin password to see who's visited and change the sign-in checklist.</p>
+            <?php echo $defaultPasswordWarning; ?>
+            <?php if ($error_message): ?>
+                <div class="status-message error" role="alert"><?php echo e($error_message); ?></div>
+            <?php endif; ?>
+            <form method="post" autocomplete="off">
+                <label>
+                    Password
+                    <input type="password" name="password" autocomplete="current-password" required autofocus>
+                </label>
+                <button type="submit" class="btn-block">Log in</button>
+            </form>
+        </article>
+    </main>
 
-                .visitor-table tbody tr:hover {
-                    background: #e1f5fe;
-                }
+    <?php
+    require 'footer.php';
+    exit;
+}
 
-                @media (max-width: 768px) {
+// ---------------------------------------------------------------------------
+// Logged in: the visitor log and the checklist
+// ---------------------------------------------------------------------------
+$flashMessage = $_SESSION['flash'] ?? null;
+unset($_SESSION['flash']);
 
-                    .visitor-table th,
-                    .visitor-table td {
-                        padding: 8px;
-                        font-size: 14px;
-                    }
-                }
-            </style>
-        </head>
+$results = [];
+$terms = [];
+$stats = ['today' => 0, 'notOut' => 0, 'month' => 0];
+$loadError = false;
+try {
+    $conn = visitors_db();
+    $today = date('Y-m-d');
 
-        <body>
-            <div class="container">
+    $stmt = $conn->prepare("SELECT * FROM visitors ORDER BY timestamp DESC LIMIT 100");
+    $stmt->execute();
+    $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-                <a href="?logout=1" class="contrast">Logout</a>
+    $stmt = $conn->prepare("SELECT COUNT(*) AS total, SUM(sign_out_timestamp IS NULL) AS not_out
+                            FROM visitors WHERE DATE(timestamp) = :today");
+    $stmt->execute([':today' => $today]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stats['today'] = (int) ($row['total'] ?? 0);
+    $stats['notOut'] = (int) ($row['not_out'] ?? 0);
+
+    $stmt = $conn->prepare("SELECT COUNT(*) FROM visitors WHERE DATE(timestamp) >= :since");
+    $stmt->execute([':since' => date('Y-m-d', strtotime('-29 days'))]);
+    $stats['month'] = (int) $stmt->fetchColumn();
+
+    $terms = visitors_terms($conn);
+} catch (PDOException $e) {
+    error_log('Visitors: admin page query failed: ' . $e->getMessage());
+    $loadError = true;
+}
+
+$pageTitle = 'Admin · Visitors';
+$navActive = 'admin';
+$showLogout = true;
+require 'header.php';
+?>
+
+    <main class="container">
+        <hgroup class="page-header">
+            <h1>Admin</h1>
+            <p>Who's been on site, and the checklist visitors agree to when they sign in.</p>
+        </hgroup>
+
+        <?php echo $defaultPasswordWarning; ?>
+
+        <?php if ($loadError): ?>
+            <div class="status-message error" role="alert">The visitor log couldn't be read. Check the add-on's log in Home Assistant.</div>
+        <?php endif; ?>
+
+        <?php if ($flashMessage): ?>
+            <div class="status-message <?php echo $flashMessage['type'] === 'error' ? 'error' : 'success'; ?>" role="status"><?php echo e($flashMessage['message']); ?></div>
+        <?php endif; ?>
+
+        <section class="stat-grid" aria-label="Visitor numbers">
+            <div class="stat-card">
+                <span class="stat-value"><?php echo $stats['today']; ?></span>
+                <span class="stat-label">Visitors today</span>
             </div>
-            <main class="container">
-                <?php if (isset($usingDefaultPassword) && $usingDefaultPassword): ?>
-                    <article style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; margin-bottom: 20px;">
-                        <strong>Warning:</strong> You are using the default admin password. Please set a secure
-                        <code>admin_password</code> in the Home Assistant Add-on configuration.
-                    </article>
-                <?php endif; ?>
-                <h2>Visitor Activity</h2>
-                <div style="overflow-x:auto;">
-                    <?php if (count($results) > 0): ?>
-                        <table class="visitor-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Contact #</th>
-                                    <th>Company</th>
-                                    <th>Visiting</th>
-                                    <th>Sign-In Time</th>
-                                    <th>Sign-Out Time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($results as $row): ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($row['name']) ?></td>
-                                        <td><?= htmlspecialchars($row['contact']) ?></td>
-                                        <td><?= htmlspecialchars($row['company']) ?></td>
-                                        <td><?= htmlspecialchars($row['visiting']) ?></td>
-                                        <td><?= htmlspecialchars($row['timestamp']) ?></td>
-                                        <td><?= !empty($row["sign_out_timestamp"]) ? htmlspecialchars($row["sign_out_timestamp"]) : "N/A" ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    <?php else: ?>
-                        <p>No visitor activity found.</p>
-                    <?php endif; ?>
-                </div>
-            </main>
+            <div class="stat-card">
+                <span class="stat-value"><?php echo $stats['notOut']; ?></span>
+                <span class="stat-label">Not signed out yet</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-value"><?php echo $stats['month']; ?></span>
+                <span class="stat-label">Last 30 days</span>
+            </div>
+        </section>
 
-            <!-- Manage Options Section -->
-            <div class="container" style="margin-top: 20px;">
-                <h3>Manage Sign-in Options</h3>
-                <p>These interactable checkboxes appear on the main sign-in page.</p>
-
-                <?php if (isset($success_message)): ?>
-                    <div class="success-message"
-                        style="background: #d4edda; color: #155724; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-                        <?= htmlspecialchars($success_message) ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php
-                // Fetch existing terms
-                $terms_stmt = $conn->query("SELECT * FROM terms ORDER BY id ASC");
-                $terms = $terms_stmt->fetchAll(PDO::FETCH_ASSOC);
-                ?>
-
+        <section class="admin-section" aria-labelledby="logTitle">
+            <span class="eyebrow">Visitor log</span>
+            <h2 id="logTitle">Recent visitors</h2>
+            <p class="section-intro">The last 100 sign-ins, newest first.</p>
+            <?php if (count($results) > 0): ?>
+            <div class="table-wrap">
                 <table class="visitor-table">
                     <thead>
                         <tr>
-                            <th>Option Text</th>
-                            <th style="width: 150px; text-align: center;">Actions</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Phone</th>
+                            <th scope="col">Company</th>
+                            <th scope="col">Visiting</th>
+                            <th scope="col">Signed in</th>
+                            <th scope="col">Signed out</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($terms as $term): ?>
-                            <tr>
-                                <td>
-                                    <form method="post" id="update_form_<?= $term['id'] ?>" style="margin: 0;">
-                                        <input type="hidden" name="action" value="update_term">
-                                        <input type="hidden" name="id" value="<?= $term['id'] ?>">
-                                        <input type="text" name="term" value="<?= htmlspecialchars($term['term_text']) ?>" required
-                                            style="margin: 0; width: 100%;">
-                                    </form>
-                                </td>
-                                <td style="text-align: center;">
-                                    <button type="submit" form="update_form_<?= $term['id'] ?>"
-                                        style="width: auto; display: inline-block; padding: 5px 10px; font-size: 0.8rem; margin-right: 5px;">Save</button>
-                                    <form method="post" style="display: inline-block; margin: 0;">
-                                        <input type="hidden" name="action" value="delete_term">
-                                        <input type="hidden" name="id" value="<?= $term['id'] ?>">
-                                        <button type="submit"
-                                            onclick="return confirm('Are you sure you want to delete this option?');"
-                                            style="width: auto; padding: 5px 10px; font-size: 0.8rem; background-color: var(--danger-color); border-color: var(--danger-color);">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-
-                        <!-- Add New Option Row -->
-                        <tr style="background-color: #e8f5e9;">
-                            <td>
-                                <form method="post" id="add_form" style="margin: 0;">
-                                    <input type="hidden" name="action" value="add_term">
-                                    <input type="text" name="term" placeholder="Enter new option text here..." required
-                                        style="margin: 0; width: 100%;">
-                                </form>
+                        <?php foreach ($results as $row):
+                            $inDay = substr((string) $row['timestamp'], 0, 10);
+                            $outDay = substr((string) $row['sign_out_timestamp'], 0, 10); ?>
+                        <tr>
+                            <td class="cell-name"><?php echo e($row['name']); ?></td>
+                            <td class="cell-nowrap" data-label="Phone"><span class="cell-value"><?php echo e($row['contact']); ?></span></td>
+                            <td data-label="Company"><span class="cell-value"><?php echo $row['company'] !== '' && $row['company'] !== null ? e($row['company']) : '<span class="cell-empty">None given</span>'; ?></span></td>
+                            <td data-label="Visiting"><span class="cell-value"><?php echo e($row['visiting']); ?></span></td>
+                            <td class="cell-nowrap" data-label="Signed in"><span class="cell-value">
+                                <span class="cell-date"><?php echo e(visitors_date($row['timestamp'])); ?></span>
+                                <span class="cell-time"><?php echo e(visitors_time($row['timestamp'])); ?></span>
+                            </span></td>
+                            <?php if (!empty($row['sign_out_timestamp'])): ?>
+                            <td class="cell-nowrap" data-label="Signed out"><span class="cell-value">
+                                <?php if ($outDay !== $inDay): ?><span class="cell-date"><?php echo e(visitors_date($row['sign_out_timestamp'])); ?></span><?php endif; ?>
+                                <span class="cell-time"><?php echo e(visitors_time($row['sign_out_timestamp'])); ?></span>
+                            </span></td>
+                            <?php else: ?>
+                            <td class="cell-nowrap cell-status">
+                                <?php if ($inDay === date('Y-m-d')): ?>
+                                    <span class="badge badge--in">Still signed in</span>
+                                <?php else: ?>
+                                    <span class="badge badge--neutral">Didn't sign out</span>
+                                <?php endif; ?>
                             </td>
-                            <td style="text-align: center;">
-                                <button type="submit" form="add_form"
-                                    style="width: auto; display: inline-block; padding: 5px 10px; font-size: 0.8rem; background-color: #28a745; border-color: #28a745;">Add
-                                    New</button>
-                            </td>
+                            <?php endif; ?>
                         </tr>
+                        <?php endforeach; ?>
                     </tbody>
                 </table>
             </div>
-        </body>
+            <?php else: ?>
+                <div class="empty-state">No one has signed in yet. Visitors show up here as soon as they do.</div>
+            <?php endif; ?>
+        </section>
 
-        </html>
-        <?php
-    } catch (PDOException $e) {
-        error_log("Database error: " . $e->getMessage());
-        echo "<p class='error'>An error occurred while fetching visitor data.</p>";
-    }
-} else {
-    // Display login form with error handling
-    ?>
-    <!DOCTYPE html>
-    <html lang="en">
+        <section class="admin-section" id="checklist" aria-labelledby="checklistTitle">
+            <span class="eyebrow">Sign-in checklist</span>
+            <h2 id="checklistTitle">What visitors agree to</h2>
+            <p class="section-intro">Every visitor ticks each of these before they can sign in. Changes show on the sign-in page straight away.</p>
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Admin Access - Visitors Sign-in</title>
-        <link rel="stylesheet" href="https://unpkg.com/@picocss/pico@latest/css/pico.min.css">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <style>
-            :root {
-                --spacing: 1rem;
-                --typography-spacing-vertical: 1.5rem;
-                --primary-color: #007bff;
-                --text-align: center;
-                --danger-color: #dc3545;
-                --text-color: #333;
-                --card-background: #fff;
-                --border-radius: 8px;
-                --table-header-bg: #007bff;
-                --table-header-color: #fff;
-            }
-
-            body {
-                margin: 0;
-                padding: 0;
-                font-family: Arial, sans-serif;
-                background: var(--background-color);
-                color: var(--text-color);
-            }
-
-            .container {
-                width: 90%;
-                max-width: 1100px;
-                margin: 40px auto;
-            }
-
-            h2 {
-                color: var(--primary-color);
-                text-align: center;
-            }
-
-            .admin-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-            }
-
-            .logout-btn {
-                display: flex;
-                align-items: center;
-                padding: 10px 15px;
-                background: var(--danger-color);
-                color: white;
-                border-radius: var(--border-radius);
-                text-decoration: none;
-                font-weight: bold;
-                transition: 0.3s;
-            }
-
-            .logout-btn:hover {
-                background: #c82333;
-            }
-
-            .material-icons {
-                margin-right: 5px;
-                vertical-align: middle;
-            }
-
-            .visitor-table {
-                width: 100%;
-                border-collapse: collapse;
-                background: var(--card-background);
-                border-radius: var(--border-radius);
-                overflow: hidden;
-                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            }
-
-            .visitor-table th {
-                background: var(--table-header-bg);
-                color: var(--table-header-color);
-                padding: 12px;
-                text-align: left;
-            }
-
-            .visitor-table td {
-                padding: 10px;
-                border-bottom: 1px solid #ddd;
-            }
-
-            .visitor-table tbody tr:nth-child(even) {
-                background: #f9f9f9;
-            }
-
-            .visitor-table tbody tr:hover {
-                background: #e1f5fe;
-            }
-
-            .login-container {
-                max-width: 400px;
-                margin: 80px auto;
-                background: var(--card-background);
-                padding: 20px;
-                border-radius: var(--border-radius);
-                box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            }
-
-            input[type="password"] {
-                width: 100%;
-                padding: 10px;
-                margin-top: 5px;
-                border-radius: var(--border-radius);
-                border: 1px solid #ccc;
-            }
-
-            button {
-                width: 100%;
-                background: var(--primary-color);
-                color: white;
-                padding: 12px;
-                border: none;
-                border-radius: var(--border-radius);
-                cursor: pointer;
-                font-size: 16px;
-            }
-
-            button:hover {
-                background: #0056b3;
-            }
-
-            .error-message {
-                color: var(--danger-color);
-                background: #f8d7da;
-                padding: 10px;
-                border-radius: var(--border-radius);
-                margin-bottom: 15px;
-            }
-        </style>
-    </head>
-
-    <body>
-        <main class="container">
-            <div class="login-container">
-                <article>
-                    <h2>Admin Access</h2>
-                    <?php if (isset($usingDefaultPassword) && $usingDefaultPassword): ?>
-                        <div class="error-message"
-                            style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
-                            <strong>Warning:</strong> Default password in use. Please configure a secure password in Home
-                            Assistant.
+            <ol class="checklist-admin">
+                <?php foreach ($terms as $i => $term): ?>
+                <li class="checklist-row">
+                    <span class="checklist-number" aria-hidden="true"><?php echo $i + 1; ?></span>
+                    <form method="post" class="term-form">
+                        <input type="hidden" name="action" value="update_term">
+                        <input type="hidden" name="id" value="<?php echo e($term['id']); ?>">
+                        <label class="visually-hidden" for="term<?php echo e($term['id']); ?>">Checklist item <?php echo $i + 1; ?></label>
+                        <textarea id="term<?php echo e($term['id']); ?>" name="term" rows="2" required><?php echo e($term['text']); ?></textarea>
+                        <div class="term-actions">
+                            <button type="submit" class="btn-sm btn-outline btn-save">Save</button>
+                            <button type="submit" class="btn-sm btn-outline btn-danger" form="deleteTerm<?php echo e($term['id']); ?>">Delete</button>
                         </div>
-                    <?php endif; ?>
-                    <?php if (isset($error_message)): ?>
-                        <div class="error-message"><?php echo htmlspecialchars($error_message); ?></div>
-                    <?php endif; ?>
-                    <form method="post" autocomplete="off">
-                        <div class="grid">
-                            <label for="password">
-                                Password
-                                <input type="password" id="password" name="password" required>
-                            </label>
-                        </div>
-                        <button type="submit" class="contrast">
-                            <span class="material-icons">login</span>
-                            Login
-                        </button>
                     </form>
-                </article>
-            </div>
-        </main>
-    </body>
+                    <form method="post" id="deleteTerm<?php echo e($term['id']); ?>" hidden data-confirm-title="Delete checklist item <?php echo $i + 1; ?>?" data-confirm="Visitors won't be asked to agree to it any more. This can't be undone." data-confirm-button="Delete">
+                        <input type="hidden" name="action" value="delete_term">
+                        <input type="hidden" name="id" value="<?php echo e($term['id']); ?>">
+                    </form>
+                </li>
+                <?php endforeach; ?>
+                <li class="checklist-row checklist-row--new">
+                    <span class="checklist-number" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    </span>
+                    <form method="post" class="term-form">
+                        <input type="hidden" name="action" value="add_term">
+                        <label class="visually-hidden" for="newTerm">New checklist item</label>
+                        <textarea id="newTerm" name="term" rows="2" required placeholder="Add an item, like: I will wear the hi-vis vest I'm given."></textarea>
+                        <div class="term-actions">
+                            <button type="submit" class="btn-sm">Add to checklist</button>
+                        </div>
+                    </form>
+                </li>
+            </ol>
+        </section>
+    </main>
 
-    </html>
-    <?php
-}
-?>
+<?php require 'footer.php'; ?>

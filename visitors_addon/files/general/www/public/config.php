@@ -1,5 +1,9 @@
 <?php
 
+// The add-on's version, shown in the header and used to cache-bust the CSS
+// and JS. Keep it in step with version: in visitors_addon/config.yaml.
+define('VISITORS_VERSION', '1.1.0');
+
 date_default_timezone_set('Pacific/Auckland');
 
 // Error reporting - disable in production
@@ -7,15 +11,27 @@ ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
 // Session configuration
+// The admin login cookie. It has its own name, because every add-on opened
+// through Home Assistant shares one site (and one set of cookies).
+ini_set('session.name', 'visitors_admin');
 ini_set('session.cookie_httponly', 1);
-ini_set('session.cookie_secure', 1);
 ini_set('session.use_strict_mode', 1);
 ini_set('session.cookie_samesite', 'Strict');
+// Secure only when the page really is on HTTPS. Plenty of Home Assistant boxes
+// are opened over plain http:// on the LAN, and browsers throw a Secure cookie
+// away there, which logged admins straight back out on the next tap. Home
+// Assistant's ingress passes the browser's scheme on in X-Forwarded-Proto.
+$forwardedProto = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')[0]));
+$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $forwardedProto === 'https';
+ini_set('session.cookie_secure', $isHttps ? 1 : 0);
 
 // Security headers
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
-header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://ajax.googleapis.com; style-src 'self' 'unsafe-inline' https://unpkg.com https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
+// Everything (CSS, JS, fonts, logo) is served from the add-on itself, so the
+// pages work on a Home Assistant box with no internet. No framing rules here:
+// Home Assistant shows the add-on in a frame, and X-Frame-Options broke that.
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'");
 header("Referrer-Policy: strict-origin-when-cross-origin");
 
 // Constants for rate limiting
@@ -76,9 +92,10 @@ if (!$adminPassword) {
 }
 
 // Database configuration with restricted permissions
-// Database configuration with restricted permissions
 // NOTE: /www/public is EPHEMERAL. All persistent data MUST be in /data.
-$dbfile = '/data/visitor_signin.db';
+// VISITORS_DB_PATH is only for running the pages on a dev PC (see
+// DEVELOPMENT.md). The add-on never sets it, so it always uses /data.
+$dbfile = getenv('VISITORS_DB_PATH') ?: '/data/visitor_signin.db';
 $dbPermissions = 0600; // Read/write for owner only
 
 // Ensure database file has correct permissions

@@ -1,0 +1,3 @@
+# A local copy of the add-on options, for trying the pages on a dev PC
+# (see DEVELOPMENT.md). The add-on writes its own at start-up.
+visitors_addon/files/general/www/public/options.json

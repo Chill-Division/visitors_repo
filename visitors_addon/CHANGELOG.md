@@ -1,3 +1,33 @@
+## 1.1.0
+
+A fresh look to match the GRACe Portal, in light or dark, plus some important fixes for the admin page. Update when you can.
+
+### What's new
+
+- **A new look, in light or dark.** The sign-in and admin pages now look like the GRACe Portal, in Chill Division's colours and type. Tap the moon button in the menu bar for the dark theme, and the sun to switch back. Each device remembers its choice.
+- **Signing in and out on one screen.** On a tablet the sign-in form and sign-out search sit side by side. On a phone, a "Leaving? Sign out" button jumps straight to signing out.
+- **No more pop-ups to tap away.** "You're signed in" and "You're signed out" now show as a short message at the bottom of the screen.
+- **Works with no internet.** The pages no longer load anything from the internet. Before, a Home Assistant box that was offline showed an unstyled page that couldn't save sign-ins.
+- **A quick count on the admin page.** How many visitors came today, how many haven't signed out yet, and how many came in the last 30 days.
+
+### Important fixes
+
+- **Admin logins stick when you use http://.** If you open Home Assistant at an address starting with http:// (not https://), the admin page logged you out again on the next tap, so checklist changes never saved. Fixed.
+- **The admin password can't be downloaded any more.** Anyone who could open the add-on in Home Assistant (a kiosk tablet, say) could load the add-on's settings file, admin password included, by typing its address. It's blocked now. If you think someone might have seen your password, change it.
+- **Phone numbers stay private at the kiosk.** Searching for your name to sign out showed each match's phone number to whoever was at the screen. It now shows the name, company and time they signed in. Phone numbers are only on the admin page.
+
+### Changes
+
+- Checklist items with an apostrophe or ampersand (like "don't") now show and save properly. Before, they came out garbled on the admin page.
+- Admin passwords with symbols in them (& < > " and ') now work.
+- Deleting a checklist item asks you to confirm in the add-on's own pop-up.
+- Visitor times show as "15 Nov 2026" and "9:42 am".
+
+### Minor bug fixes and reliability improvements
+
+- Tapping your name twice no longer changes your sign-out time, and refreshing the admin page after a change doesn't make it twice.
+- Signing in always needs a name, phone number and who you're visiting, even if the page is skipped.
+
 ## 1.0.1
 
 - Fix: Moved SQLite database to `/data` partition to ensure data persists across add-on restarts.
