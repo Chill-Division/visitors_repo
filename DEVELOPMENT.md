@@ -10,6 +10,7 @@ How to run the pages on your own PC with made-up visitors, refresh the README's 
 4. **No framing rules.** Home Assistant shows the add-on in a frame. `X-Frame-Options` broke that once (0.9.4.1), and `frame-ancestors` would too.
 5. **PHP 8.3 with only `pdo`, `pdo_sqlite` and `session` on top of the core.** Functions such as `mb_strtolower()` or `ctype_digit()` work on a dev PC and crash in the add-on.
 6. **Brand.** The look follows the GRACe Portal's layout and the Chill Division brand guide. Colours are the `--v-*` tokens at the top of `css/visitors.css`, for both themes. Text is Inter, buttons are pills, and on-screen wording has no semicolons or dashes.
+7. **Say app to the people using it.** Home Assistant renamed add-ons to apps in 2026.2, so the README, the repository's name and on-screen text say app and Settings → Apps. Keep add-on for the technical side nobody using it sees, like the add-on image and `config.yaml`. Never change the `visitors_addon` slug: Home Assistant would treat Visitors as a different app, cut off from every install's visitor log.
 
 ## Run it
 
@@ -42,6 +43,6 @@ Add `-Only tablet-sign-in,phone-sign-out` for just some of them. The notes at th
 ## Release checklist
 
 1. Bump the version in `visitors_addon/config.yaml` and `VISITORS_VERSION` in `config.php`. They must match.
-2. Add an entry to the top of `visitors_addon/CHANGELOG.md`. Write it for the people using the add-on: what changed for them, not how.
+2. Add an entry to the top of `visitors_addon/CHANGELOG.md`. Write it for the people using the app: what changed for them, not how.
 3. If the pages look different, refresh the screenshots.
 4. Open a pull request. Home Assistant offers the update to everyone as soon as it's merged to `main`.

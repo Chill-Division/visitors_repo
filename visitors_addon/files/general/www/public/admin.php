@@ -123,7 +123,7 @@ if (is_admin() && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'
 $defaultPasswordWarning = '';
 if (!empty($usingDefaultPassword)) {
     $defaultPasswordWarning = '<div class="callout callout-warning" role="note"><strong>You\'re using the default admin password.</strong> '
-        . 'Set your own <code>admin_password</code> on the add-on\'s Configuration tab in Home Assistant, then restart the add-on.</div>';
+        . 'Set your own <code>admin_password</code> on the app\'s Configuration tab in Home Assistant (Settings → Apps), then restart the app.</div>';
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +211,7 @@ require 'header.php';
         <?php echo $defaultPasswordWarning; ?>
 
         <?php if ($loadError): ?>
-            <div class="status-message error" role="alert">The visitor log couldn't be read. Check the add-on's log in Home Assistant.</div>
+            <div class="status-message error" role="alert">The visitor log couldn't be read. Check the app's log in Home Assistant, under Settings → Apps.</div>
         <?php endif; ?>
 
         <?php if ($flashMessage): ?>

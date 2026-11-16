@@ -1,6 +1,6 @@
 # Visitors, a sign-in and sign-out tracker for Home Assistant
 
-A simple visitor register for your facility, as a Home Assistant add-on. Free and open source, from Chill Division.
+A simple visitor register for your facility, as a Home Assistant app. Free and open source, from Chill Division.
 
 Visitors sign in on a tablet at the door, tick off your site rules, and sign themselves out when they leave. Signing out takes a few seconds, so there's no queue at the door. And if someone forgets, nothing breaks. You'll see who didn't sign out on the admin page.
 
@@ -31,11 +31,13 @@ Below the log is the checklist every visitor ticks before they can sign in. Edit
 
 ## Installation
 
+Home Assistant has called add-ons "apps" since 2026.2, so on an older Home Assistant read "Add-ons" wherever these steps say "Apps".
+
 [![Add this repository to your Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FChill-Division%2Fvisitors_repo)
 
 Or add it by hand:
 
-1. In Home Assistant, go to Settings -> Add-ons -> Add-on Store.
+1. In Home Assistant, go to Settings -> Apps and open the app store.
 2. Tap the 3-dot menu in the upper-right and choose "Repositories".
 3. In the "Add" box, enter `https://github.com/Chill-Division/visitors_repo`, then click "Add" and "Close".
 4. You may need to tap the 3-dot menu again and choose "Check for updates". "Visitors Sign-in" then shows up under the new repository.
@@ -43,11 +45,11 @@ Or add it by hand:
 
 ## Set your admin password
 
-Until you set one, the admin password is `cannabis`, and the admin page reminds you to change it. Open the add-on's Configuration tab, fill in `admin_password`, save, then restart the add-on.
+Until you set one, the admin password is `cannabis`, and the admin page reminds you to change it. Open the app's Configuration tab, fill in `admin_password`, save, then restart the app.
 
 ## Your data and backups
 
-Everything Visitors records is stored inside the add-on, so it survives updates and is included in your Home Assistant backups. Make sure automatic backups are turned on and copied somewhere off the box.
+Everything Visitors records is stored inside the app, so it survives updates and is included in your Home Assistant backups. Make sure automatic backups are turned on and copied somewhere off the box.
 
 ## For developers
 
