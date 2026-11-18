@@ -1,3 +1,15 @@
+## 1.1.1
+
+A small tidy-up. Nothing changes in how Visitors works.
+
+### Changes
+
+- Home Assistant calls add-ons apps now, and so does Visitors. The admin page's messages point you to Settings → Apps.
+
+### Minor bug fixes and reliability improvements
+
+- Removed an unused config folder and the 32-bit systems Home Assistant no longer supports. Its latest Supervisor warned about both in the log.
+
 ## 1.1.0
 
 A fresh look to match the GRACe Portal, in light or dark, plus some important fixes for the admin page. Update when you can.

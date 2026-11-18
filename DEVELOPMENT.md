@@ -10,6 +10,7 @@ How to run the pages on your own PC with made-up visitors, refresh the README's 
 4. **No framing rules.** Home Assistant shows the add-on in a frame. `X-Frame-Options` broke that once (0.9.4.1), and `frame-ancestors` would too.
 5. **PHP 8.3 with only `pdo`, `pdo_sqlite` and `session` on top of the core.** Functions such as `mb_strtolower()` or `ctype_digit()` work on a dev PC and crash in the add-on.
 6. **Brand.** The look follows the GRACe Portal's layout and the Chill Division brand guide. Colours are the `--v-*` tokens at the top of `css/visitors.css`, for both themes. Text is Inter, buttons are pills, and on-screen wording has no semicolons or dashes.
+7. **Say app to the people using it.** Home Assistant renamed add-ons to apps in 2026.2, so the README, the repository's name and on-screen text say app and Settings → Apps. Keep add-on for the technical side nobody using it sees, like the add-on image and `config.yaml`. Never change the `visitors_addon` slug: Home Assistant would treat Visitors as a different app, cut off from every install's visitor log.
 
 ## Run it
 
@@ -27,7 +28,7 @@ Open <http://127.0.0.1:8421/>. `VISITORS_DB_PATH` points the pages at a scratch 
 - `php tests/seed_demo_data.php --force` wipes the scratch log, adds the made-up visitors again, and puts the default checklist back. Today's visitors are timed relative to now, so the sign-out search always finds someone (try "Sam").
 - With no `options.json` the admin password is `cannabis`, and the admin page shows its default password warning. To try it with your own password, put `{"admin_password": "something"}` in `visitors_addon/files/general/www/public/options.json`. Git ignores that file.
 - Both themes matter. The sun and moon button switches them, and the choice is saved in the browser under `visitors-theme`.
-- CSS and JS are cache-busted by version (`?v=1.1.0`). If a change doesn't show up, hard-refresh with Ctrl+Shift+R.
+- CSS and JS are cache-busted by version (`?v=1.1.1`). If a change doesn't show up, hard-refresh with Ctrl+Shift+R.
 
 ## Refresh the screenshots
 
@@ -42,6 +43,6 @@ Add `-Only tablet-sign-in,phone-sign-out` for just some of them. The notes at th
 ## Release checklist
 
 1. Bump the version in `visitors_addon/config.yaml` and `VISITORS_VERSION` in `config.php`. They must match.
-2. Add an entry to the top of `visitors_addon/CHANGELOG.md`. Write it for the people using the add-on: what changed for them, not how.
+2. Add an entry to the top of `visitors_addon/CHANGELOG.md`. Write it for the people using the app: what changed for them, not how.
 3. If the pages look different, refresh the screenshots.
 4. Open a pull request. Home Assistant offers the update to everyone as soon as it's merged to `main`.

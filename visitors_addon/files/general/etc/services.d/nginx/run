@@ -12,8 +12,6 @@ if [ -n "$FOUND_CONFIG" ]; then
     echo "DEBUG STARTUP: Copied to /www/public/options.json"
 else
     echo "WARNING STARTUP: options.json NOT FOUND via search."
-    echo "DEBUG STARTUP: Listing /visitors_config:"
-    # ls -la /visitors_config || echo "/visitors_config not readable"
     echo "DEBUG STARTUP: Listing /data:"
     # ls -la /data || echo "/data not readable"
 fi
