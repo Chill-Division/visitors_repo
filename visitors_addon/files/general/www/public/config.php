@@ -2,7 +2,7 @@
 
 // The add-on's version, shown in the header and used to cache-bust the CSS
 // and JS. Keep it in step with version: in visitors_addon/config.yaml.
-define('VISITORS_VERSION', '1.1.0');
+define('VISITORS_VERSION', '1.1.1');
 
 date_default_timezone_set('Pacific/Auckland');
 
@@ -39,10 +39,9 @@ define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT', 300); // 5 minutes in seconds
 
 // Get admin password from Home Assistant addon config
-// Try local copy first (from startup script), then direct mount, then strict default
+// Try the startup script's local copy first, then Home Assistant's own copy in /data
 $configLocations = [
     __DIR__ . '/options.json',
-    '/visitors_config/options.json',
     '/data/options.json'
 ];
 

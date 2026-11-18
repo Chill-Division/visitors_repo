@@ -28,7 +28,7 @@ Open <http://127.0.0.1:8421/>. `VISITORS_DB_PATH` points the pages at a scratch 
 - `php tests/seed_demo_data.php --force` wipes the scratch log, adds the made-up visitors again, and puts the default checklist back. Today's visitors are timed relative to now, so the sign-out search always finds someone (try "Sam").
 - With no `options.json` the admin password is `cannabis`, and the admin page shows its default password warning. To try it with your own password, put `{"admin_password": "something"}` in `visitors_addon/files/general/www/public/options.json`. Git ignores that file.
 - Both themes matter. The sun and moon button switches them, and the choice is saved in the browser under `visitors-theme`.
-- CSS and JS are cache-busted by version (`?v=1.1.0`). If a change doesn't show up, hard-refresh with Ctrl+Shift+R.
+- CSS and JS are cache-busted by version (`?v=1.1.1`). If a change doesn't show up, hard-refresh with Ctrl+Shift+R.
 
 ## Refresh the screenshots
 
